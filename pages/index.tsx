@@ -115,6 +115,7 @@ export default function IndexPage({ initialFilters }: { initialFilters: InitialF
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [apiData, setApiData] = useState<any[]>([])
+  const skipNextEndReachedRef = useRef(false)
 
   // SSR hydration to prevent first-render flicker
   useHydrateAtoms([
