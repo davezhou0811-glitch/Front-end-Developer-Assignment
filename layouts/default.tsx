@@ -1,12 +1,10 @@
-import { Link } from '@heroui/link'
-
 import { Head } from './head'
 
 import { Navbar } from '@/components/navbar'
 
 export default function DefaultLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative flex flex-col h-screen">
+    <div className="relative flex flex-col">
       <Head />
       <Navbar />
       <main className="px-6 flex-grow" style={{ backgroundColor: '#1B1A21' }}>

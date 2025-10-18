@@ -29,12 +29,14 @@ import {
   resumeUrlSync
 } from '@/store/atoms'
 
+// Sorting options
 const sortOptions = [
   { key: 'name', label: 'Item Name' },
   { key: 'price_desc', label: 'Higher Price' },
   { key: 'price_asc', label: 'Lower Price' }
 ]
 
+// Skeleton card for loading state
 const SkeletonCard = () => (
   <div className="w-full">
     <Skeleton className="w-full aspect-[100/133] rounded-medium" />
@@ -108,14 +110,13 @@ export const getServerSideProps: GetServerSideProps<{
 export default function IndexPage({ initialFilters }: { initialFilters: InitialFilters }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
-
   // Fake pagination
   const PAGE_SIZE = 20
   const [allData, setAllData] = useState<any[]>([])
   const [page, setPage] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [apiData, setApiData] = useState<any[]>([])
-  const skipNextEndReachedRef = useRef(false)
+  const skipNextEndReachedRef = useRef(true)
 
   // SSR hydration to prevent first-render flicker
   useHydrateAtoms([
@@ -132,6 +133,7 @@ export default function IndexPage({ initialFilters }: { initialFilters: InitialF
     setMounted(true)
   }, [])
 
+  // Atoms
   const [selectedOption, setSelectedOption] = useAtom(selectedOptionAtom)
   const [sortKey, setSortKey] = useAtom(sortKeyAtom)
   const [price, setPrice] = useAtom(priceAtom)
@@ -143,6 +145,7 @@ export default function IndexPage({ initialFilters }: { initialFilters: InitialF
   const debounceRef = useRef<number | null>(null)
   const DEBOUNCE_MS = 250
 
+  // Append next page of data from cached allData
   const appendNextPageFromCache = useCallback(() => {
     setApiData(prev => {
       const start = prev.length
@@ -174,8 +177,10 @@ export default function IndexPage({ initialFilters }: { initialFilters: InitialF
         const first = data.slice(0, PAGE_SIZE)
 
         setApiData(first)
-        setPage(0)
-        setHasMore(true)
+        setPage(first.length > 0 ? 1 : 0)
+        setHasMore(first.length < data.length)
+        // skip first automatic endReached trigger
+        skipNextEndReachedRef.current = false
       } else {
         appendNextPageFromCache()
       }
@@ -187,7 +192,12 @@ export default function IndexPage({ initialFilters }: { initialFilters: InitialF
     }
   }, [allData.length, appendNextPageFromCache, hasMore, loading, PAGE_SIZE])
 
+  // Initialize data on first mount
+  const didInitRef = useRef(false)
+
   useEffect(() => {
+    if (didInitRef.current) return
+    didInitRef.current = true
     void fetchData()
   }, [fetchData])
 
@@ -328,7 +338,13 @@ export default function IndexPage({ initialFilters }: { initialFilters: InitialF
     setSortKey,
     appendNextPageFromCache
   ])
+
   const handleEndReached = useCallback(() => {
+    if (skipNextEndReachedRef.current) {
+      skipNextEndReachedRef.current = false
+
+      return
+    }
     if (!loading && hasMore) {
       void fetchData()
     }
@@ -358,8 +374,6 @@ export default function IndexPage({ initialFilters }: { initialFilters: InitialF
   // Displayed price range values
   const displayMin = (!mounted ? initialFilters.price[0] : price[0]) ?? DEFAULT_PRICE[0]
   const displayMax = (!mounted ? initialFilters.price[1] : price[1]) ?? DEFAULT_PRICE[1]
-
-  // console.log('sssss:', sortedData)
 
   return (
     <DefaultLayout>
